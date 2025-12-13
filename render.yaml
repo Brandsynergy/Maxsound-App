@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: maxsound
+    env: node
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: maxsound-db
+          property: connectionString
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        value: https://maxsound.onrender.com
+
+databases:
+  - name: maxsound-db
+    databaseName: maxsound
+    user: maxsound
