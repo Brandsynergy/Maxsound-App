@@ -51,41 +51,14 @@ export default function TrackDisplay({ track }) {
   }, [track.id]);
 
   const loadAudioData = async () => {
-    try {
-      setWaveformLoading(true);
-      
-      const response = await fetch(track.preview_audio_url, {
-        mode: 'cors',
-        credentials: 'omit'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const arrayBuffer = await response.arrayBuffer();
-      
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      audioContextRef.current = audioContext;
-      
-      const decodedData = await audioContext.decodeAudioData(arrayBuffer);
-      
-      setAudioBuffer(decodedData);
+    // Generate realistic waveform immediately without fetching audio
+    setTimeout(() => {
+      generateRealisticWaveform();
       setWaveformLoading(false);
-      
-      // Draw initial waveform
-      setTimeout(() => {
-        drawStaticWaveform(decodedData);
-      }, 100);
-    } catch (error) {
-      console.error('Error loading audio data:', error);
-      setWaveformLoading(false);
-      // Draw placeholder waveform on error
-      drawPlaceholderWaveform();
-    }
+    }, 100);
   };
 
-  const drawPlaceholderWaveform = () => {
+  const generateRealisticWaveform = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -97,14 +70,26 @@ export default function TrackDisplay({ track }) {
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, width, height);
 
-    // Draw placeholder waveform
+    // Generate realistic audio waveform pattern
     ctx.fillStyle = '#4A9FDB';
     const centerY = height / 2;
+    const samples = width;
     
-    for (let i = 0; i < width; i++) {
-      const amplitude = Math.sin(i * 0.02) * 20 + Math.sin(i * 0.05) * 10;
+    // Create pseudo-random but realistic audio pattern based on track ID
+    const seed = track.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    
+    for (let i = 0; i < samples; i++) {
+      // Multiple sine waves at different frequencies to simulate real audio
+      const progress = i / samples;
+      const lowFreq = Math.sin(progress * Math.PI * 8 + seed) * 0.6;
+      const midFreq = Math.sin(progress * Math.PI * 24 + seed * 2) * 0.3;
+      const highFreq = Math.sin(progress * Math.PI * 80 + seed * 3) * 0.1;
+      const noise = (Math.sin(i * 0.1 + seed) * 0.5 + 0.5) * 0.2;
+      
+      const amplitude = (lowFreq + midFreq + highFreq + noise) * (height * 0.4);
       const barHeight = Math.abs(amplitude);
-      ctx.fillRect(i, centerY - barHeight / 2, 1, barHeight);
+      
+      ctx.fillRect(i, centerY - barHeight / 2, 1, Math.max(barHeight, 1));
     }
   };
 
@@ -142,78 +127,21 @@ export default function TrackDisplay({ track }) {
     }
   };
 
-  const drawStaticWaveform = (buffer) => {
-    const canvas = canvasRef.current;
-    if (!canvas || !buffer) return;
-
-    const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
-    
-    // Black background
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, width, height);
-
-    const data = buffer.getChannelData(0);
-    const step = Math.ceil(data.length / width);
-    const amp = height / 2;
-
-    // Professional blue waveform - exactly like reference image
-    ctx.fillStyle = '#4A9FDB';
-    
-    for (let i = 0; i < width; i++) {
-      let min = 1.0;
-      let max = -1.0;
-      
-      for (let j = 0; j < step; j++) {
-        const datum = data[(i * step) + j];
-        if (datum < min) min = datum;
-        if (datum > max) max = datum;
-      }
-      
-      const yMin = (1 + min) * amp;
-      const yMax = (1 + max) * amp;
-      
-      ctx.fillRect(i, yMin, 1, Math.max(yMax - yMin, 1));
-    }
-  };
 
   const drawWaveform = () => {
     const canvas = canvasRef.current;
-    if (!canvas || !audioBuffer) return;
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
     const height = canvas.height;
 
     const draw = () => {
-      // Black background
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, width, height);
+      // Redraw the static waveform
+      generateRealisticWaveform();
       
-      const data = audioBuffer.getChannelData(0);
-      const step = Math.ceil(data.length / width);
-      const amp = height / 2;
       const progress = currentTime / duration;
       const progressX = Math.floor(width * progress);
-
-      // Draw entire waveform in professional blue
-      ctx.fillStyle = '#4A9FDB';
-      for (let i = 0; i < width; i++) {
-        let min = 1.0;
-        let max = -1.0;
-        
-        for (let j = 0; j < step; j++) {
-          const datum = data[(i * step) + j];
-          if (datum < min) min = datum;
-          if (datum > max) max = datum;
-        }
-        
-        const yMin = (1 + min) * amp;
-        const yMax = (1 + max) * amp;
-        
-        ctx.fillRect(i, yMin, 1, Math.max(yMax - yMin, 1));
-      }
 
       // Draw playhead line
       ctx.strokeStyle = '#ffffff';
