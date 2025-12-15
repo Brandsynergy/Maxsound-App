@@ -336,23 +336,14 @@ export default function TrackDisplay({ track }) {
 
         {/* Waveform Player (professional, synced) */}
         {!isPurchased && (
-          <div className="mb-6 bg-gradient-to-br from-purple-900 to-purple-800 rounded-xl p-6">
+          <div className="mb-6 bg-gradient-to-br from-purple-900 to-purple-800 rounded-xl p-6 relative">
+            <span className="absolute -top-3 left-4 bg-black text-white text-xs tracking-widest px-2 py-1 rounded shadow">20s PREVIEW</span>
             <WaveformPlayer url={`/api/tracks/${track.id}/preview-stream`} height={100} />
           </div>
         )}
 
         {/* Action Buttons */}
         <div className="space-y-3">
-          {/* Preview Button */}
-          {!isPurchased && (
-            <button
-              onClick={playPreview}
-              className="w-full bg-white text-purple-700 font-semibold py-4 px-6 rounded-xl hover:bg-gray-100 transition duration-200 shadow-lg text-lg uppercase tracking-wide"
-            >
-              {isPlaying ? '⏸ Stop Preview' : '▶ Listen to 20s Preview'}
-            </button>
-          )}
-
           {/* Buy Button */}
           {!isPurchased && (
             <button
