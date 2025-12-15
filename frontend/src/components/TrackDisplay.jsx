@@ -51,13 +51,29 @@ export default function TrackDisplay({ track }) {
   }, [track.id]);
 
   const loadAudioData = async () => {
-    // Don't draw anything initially - only when playing
-    setWaveformLoading(false);
+    try {
+      setWaveformLoading(true);
+      
+      // Fetch the audio file
+      const response = await fetch(track.preview_audio_url);
+      const arrayBuffer = await response.arrayBuffer();
+      
+      // Decode audio data
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      audioContextRef.current = audioContext;
+      const decodedData = await audioContext.decodeAudioData(arrayBuffer);
+      
+      setAudioBuffer(decodedData);
+      setWaveformLoading(false);
+    } catch (error) {
+      console.error('Error loading audio:', error);
+      setWaveformLoading(false);
+    }
   };
 
-  const generateRealisticWaveform = () => {
+  const drawStaticWaveform = (buffer) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !buffer) return;
 
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
@@ -67,26 +83,25 @@ export default function TrackDisplay({ track }) {
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, width, height);
 
-    // Generate realistic audio waveform pattern
-    ctx.fillStyle = '#4A9FDB';
-    const centerY = height / 2;
+    // Get raw audio data
+    const rawData = buffer.getChannelData(0);
     const samples = width;
-    
-    // Create pseudo-random but realistic audio pattern based on track ID
-    const seed = track.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const blockSize = Math.floor(rawData.length / samples);
+    const centerY = height / 2;
+
+    // Draw waveform
+    ctx.fillStyle = '#4A9FDB';
     
     for (let i = 0; i < samples; i++) {
-      // Multiple sine waves at different frequencies to simulate real audio
-      const progress = i / samples;
-      const lowFreq = Math.sin(progress * Math.PI * 8 + seed) * 0.6;
-      const midFreq = Math.sin(progress * Math.PI * 24 + seed * 2) * 0.3;
-      const highFreq = Math.sin(progress * Math.PI * 80 + seed * 3) * 0.1;
-      const noise = (Math.sin(i * 0.1 + seed) * 0.5 + 0.5) * 0.2;
+      const blockStart = blockSize * i;
+      let sum = 0;
+      for (let j = 0; j < blockSize; j++) {
+        sum += Math.abs(rawData[blockStart + j]);
+      }
+      const amplitude = sum / blockSize;
+      const barHeight = amplitude * height;
       
-      const amplitude = (lowFreq + midFreq + highFreq + noise) * (height * 0.4);
-      const barHeight = Math.abs(amplitude);
-      
-      ctx.fillRect(i, centerY - barHeight / 2, 1, Math.max(barHeight, 1));
+      ctx.fillRect(i, centerY - barHeight / 2, 1, Math.max(barHeight, 2));
     }
   };
 
@@ -138,6 +153,8 @@ export default function TrackDisplay({ track }) {
 
 
   const drawWaveform = () => {
+    if (!audioBuffer) return;
+    
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -146,8 +163,8 @@ export default function TrackDisplay({ track }) {
     const height = canvas.height;
 
     const draw = () => {
-      // Redraw the static waveform
-      generateRealisticWaveform();
+      // Redraw the waveform from real audio data
+      drawStaticWaveform(audioBuffer);
       
       const progress = currentTime / duration;
       const progressX = Math.floor(width * progress);
