@@ -11,9 +11,11 @@ export default function TrackDisplay({ track }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(10);
+  const [duration, setDuration] = useState(20);
+  const [audioBuffer, setAudioBuffer] = useState(null);
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
+  const audioContextRef = useRef(null);
 
   useEffect(() => {
     // Check if already purchased
@@ -31,13 +33,37 @@ export default function TrackDisplay({ track }) {
       setCurrentTime(audio.currentTime);
     });
 
+    // Load and decode audio for waveform
+    loadAudioData();
+
     return () => {
       audio.pause();
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
     };
   }, [track.id]);
+
+  const loadAudioData = async () => {
+    try {
+      const response = await fetch(track.preview_audio_url);
+      const arrayBuffer = await response.arrayBuffer();
+      
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      audioContextRef.current = audioContext;
+      
+      const decodedData = await audioContext.decodeAudioData(arrayBuffer);
+      setAudioBuffer(decodedData);
+      
+      // Draw initial waveform
+      drawStaticWaveform(decodedData);
+    } catch (error) {
+      console.error('Error loading audio data:', error);
+    }
+  };
 
   const checkPurchaseStatus = async (paymentIntentId) => {
     try {
@@ -73,47 +99,104 @@ export default function TrackDisplay({ track }) {
     }
   };
 
-  const drawWaveform = () => {
+  const drawStaticWaveform = (buffer) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !buffer) return;
 
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
     const height = canvas.height;
-    const barCount = 50;
-    const barWidth = width / barCount;
+    
+    ctx.clearRect(0, 0, width, height);
+
+    const data = buffer.getChannelData(0);
+    const step = Math.ceil(data.length / width);
+    const amp = height / 2;
+
+    // Draw background waveform in gray
+    ctx.fillStyle = 'rgba(100, 150, 200, 0.3)';
+    
+    for (let i = 0; i < width; i++) {
+      let min = 1.0;
+      let max = -1.0;
+      
+      for (let j = 0; j < step; j++) {
+        const datum = data[(i * step) + j];
+        if (datum < min) min = datum;
+        if (datum > max) max = datum;
+      }
+      
+      const yMin = (1 + min) * amp;
+      const yMax = (1 + max) * amp;
+      
+      ctx.fillRect(i, yMin, 1, yMax - yMin);
+    }
+  };
+
+  const drawWaveform = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !audioBuffer) return;
+
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
 
     const draw = () => {
       ctx.clearRect(0, 0, width, height);
       
-      // Create gradient
-      const gradient = ctx.createLinearGradient(0, 0, width, 0);
-      gradient.addColorStop(0, '#8B5CF6');
-      gradient.addColorStop(0.5, '#3B82F6');
-      gradient.addColorStop(1, '#8B5CF6');
+      const data = audioBuffer.getChannelData(0);
+      const step = Math.ceil(data.length / width);
+      const amp = height / 2;
+      const progress = currentTime / duration;
+      const progressX = Math.floor(width * progress);
 
-      for (let i = 0; i < barCount; i++) {
-        // Create animated wave effect
-        const progress = currentTime / duration;
-        const barProgress = i / barCount;
+      // Draw entire waveform in gray first
+      ctx.fillStyle = 'rgba(100, 150, 200, 0.3)';
+      for (let i = 0; i < width; i++) {
+        let min = 1.0;
+        let max = -1.0;
         
-        // Height varies based on position and time
-        const baseHeight = Math.sin(i * 0.5 + currentTime * 3) * 0.3 + 0.5;
-        const playingMultiplier = isPlaying ? (1 + Math.sin(currentTime * 10 + i * 0.3) * 0.3) : 0.5;
-        const barHeight = height * baseHeight * playingMultiplier;
-
-        // Color bars differently based on progress
-        if (barProgress <= progress) {
-          ctx.fillStyle = gradient;
-        } else {
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        for (let j = 0; j < step; j++) {
+          const datum = data[(i * step) + j];
+          if (datum < min) min = datum;
+          if (datum > max) max = datum;
         }
-
-        const x = i * barWidth + barWidth * 0.2;
-        const y = (height - barHeight) / 2;
         
-        ctx.fillRect(x, y, barWidth * 0.6, barHeight);
+        const yMin = (1 + min) * amp;
+        const yMax = (1 + max) * amp;
+        
+        ctx.fillRect(i, yMin, 1, yMax - yMin);
       }
+
+      // Draw played portion in blue gradient
+      const gradient = ctx.createLinearGradient(0, 0, progressX, 0);
+      gradient.addColorStop(0, '#3B82F6');
+      gradient.addColorStop(1, '#60A5FA');
+      ctx.fillStyle = gradient;
+      
+      for (let i = 0; i < progressX; i++) {
+        let min = 1.0;
+        let max = -1.0;
+        
+        for (let j = 0; j < step; j++) {
+          const datum = data[(i * step) + j];
+          if (datum < min) min = datum;
+          if (datum > max) max = datum;
+        }
+        
+        const yMin = (1 + min) * amp;
+        const yMax = (1 + max) * amp;
+        
+        ctx.fillRect(i, yMin, 1, yMax - yMin);
+      }
+
+      // Draw playhead line
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(progressX, 0);
+      ctx.lineTo(progressX, height);
+      ctx.stroke();
 
       if (isPlaying) {
         animationRef.current = requestAnimationFrame(draw);
@@ -230,18 +313,26 @@ export default function TrackDisplay({ track }) {
 
         {/* Waveform Visualization */}
         {!isPurchased && (
-          <div className="mb-6 bg-black bg-opacity-30 rounded-xl p-6 backdrop-blur-sm">
-            <canvas 
-              ref={canvasRef} 
-              width={400} 
-              height={100}
-              className="w-full h-24"
-            />
-            {isPlaying && (
-              <div className="mt-3 text-center text-white text-sm">
-                {Math.floor(currentTime)}s / {Math.floor(duration)}s
+          <div className="mb-6 bg-black bg-opacity-40 rounded-xl p-6 backdrop-blur-sm">
+            <div className="relative">
+              <canvas 
+                ref={canvasRef} 
+                width={800} 
+                height={120}
+                className="w-full h-28 rounded-lg"
+              />
+              <div className="mt-3 flex justify-between items-center text-white text-sm">
+                <span className="text-blue-400 font-medium">
+                  {Math.floor(currentTime)}s
+                </span>
+                <span className="text-gray-400">
+                  Preview: {track.title}
+                </span>
+                <span className="text-gray-400">
+                  {Math.floor(duration)}s
+                </span>
               </div>
-            )}
+            </div>
           </div>
         )}
 
@@ -253,7 +344,7 @@ export default function TrackDisplay({ track }) {
               onClick={playPreview}
               className="w-full bg-white text-purple-700 font-semibold py-4 px-6 rounded-xl hover:bg-gray-100 transition duration-200 shadow-lg text-lg uppercase tracking-wide"
             >
-              {isPlaying ? '⏸ Stop Preview' : '▶ Listen to 10s Preview'}
+              {isPlaying ? '⏸ Stop Preview' : '▶ Listen to 20s Preview'}
             </button>
           )}
 
