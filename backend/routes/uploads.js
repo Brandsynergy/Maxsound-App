@@ -16,6 +16,16 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+// Check if Cloudinary is configured
+if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+  console.error('⚠️ WARNING: Cloudinary credentials not configured!');
+  console.error('Missing:', {
+    cloud_name: !process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: !process.env.CLOUDINARY_API_KEY,
+    api_secret: !process.env.CLOUDINARY_API_SECRET
+  });
+}
+
 // Configure multer for memory storage
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -105,7 +115,22 @@ router.post('/', upload.fields([
     });
   } catch (error) {
     console.error('Error uploading track:', error);
-    res.status(500).json({ error: 'Failed to upload track' });
+    
+    // Detailed error message
+    let errorMessage = 'Failed to upload track';
+    if (error.message) {
+      errorMessage += ': ' + error.message;
+    }
+    
+    // Check if it's a Cloudinary error
+    if (error.http_code) {
+      errorMessage = `Cloudinary error (${error.http_code}): ${error.message}`;
+    }
+    
+    res.status(500).json({ 
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
