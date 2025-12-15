@@ -35,7 +35,9 @@ export default function TrackDisplay({ track }) {
     });
 
     // Load and decode audio for waveform
-    loadAudioData();
+    setTimeout(() => {
+      loadAudioData();
+    }, 500);
 
     return () => {
       audio.pause();
@@ -51,7 +53,6 @@ export default function TrackDisplay({ track }) {
   const loadAudioData = async () => {
     try {
       setWaveformLoading(true);
-      console.log('Loading audio for waveform from:', track.preview_audio_url);
       
       const response = await fetch(track.preview_audio_url, {
         mode: 'cors',
@@ -63,13 +64,11 @@ export default function TrackDisplay({ track }) {
       }
       
       const arrayBuffer = await response.arrayBuffer();
-      console.log('Audio loaded, size:', arrayBuffer.byteLength);
       
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       audioContextRef.current = audioContext;
       
       const decodedData = await audioContext.decodeAudioData(arrayBuffer);
-      console.log('Audio decoded successfully, duration:', decodedData.duration);
       
       setAudioBuffer(decodedData);
       setWaveformLoading(false);
@@ -81,6 +80,31 @@ export default function TrackDisplay({ track }) {
     } catch (error) {
       console.error('Error loading audio data:', error);
       setWaveformLoading(false);
+      // Draw placeholder waveform on error
+      drawPlaceholderWaveform();
+    }
+  };
+
+  const drawPlaceholderWaveform = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Black background
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, width, height);
+
+    // Draw placeholder waveform
+    ctx.fillStyle = '#4A9FDB';
+    const centerY = height / 2;
+    
+    for (let i = 0; i < width; i++) {
+      const amplitude = Math.sin(i * 0.02) * 20 + Math.sin(i * 0.05) * 10;
+      const barHeight = Math.abs(amplitude);
+      ctx.fillRect(i, centerY - barHeight / 2, 1, barHeight);
     }
   };
 
@@ -314,29 +338,25 @@ export default function TrackDisplay({ track }) {
 
         {/* Waveform Visualization */}
         {!isPurchased && (
-          <div className="mb-6 bg-black bg-opacity-40 rounded-xl p-6 backdrop-blur-sm">
+          <div className="mb-6 bg-gradient-to-br from-purple-900 to-purple-800 rounded-xl p-6">
             <div className="relative">
-              {waveformLoading ? (
-                <div className="w-full h-28 flex items-center justify-center text-gray-400">
-                  <div className="text-center">
-                    <div className="animate-pulse mb-2">Loading waveform...</div>
-                    <div className="text-xs">Analyzing audio</div>
-                  </div>
+              <canvas 
+                ref={canvasRef} 
+                width={1200} 
+                height={100}
+                className="w-full h-24 rounded bg-black"
+                style={{ display: 'block' }}
+              />
+              {waveformLoading && (
+                <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
+                  Loading waveform...
                 </div>
-              ) : (
-                <canvas 
-                  ref={canvasRef} 
-                  width={1200} 
-                  height={100}
-                  className="w-full h-24 rounded bg-black"
-                  style={{ display: 'block' }}
-                />
               )}
               <div className="mt-3 flex justify-between items-center text-white text-sm">
                 <span className="text-blue-400 font-medium">
                   {Math.floor(currentTime)}s
                 </span>
-                <span className="text-gray-400">
+                <span className="text-gray-300">
                   Preview: {track.title}
                 </span>
                 <span className="text-gray-400">
