@@ -172,13 +172,18 @@ export default function TrackDisplay({ track }) {
       const progress = currentTime / duration;
       const progressX = Math.floor(width * progress);
 
-      // Draw playhead line
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
+      // Draw playhead line - thick and bright
+      ctx.strokeStyle = '#FF0000';
+      ctx.lineWidth = 3;
+      ctx.shadowColor = '#FF0000';
+      ctx.shadowBlur = 10;
       ctx.beginPath();
       ctx.moveTo(progressX, 0);
       ctx.lineTo(progressX, height);
       ctx.stroke();
+      
+      // Reset shadow
+      ctx.shadowBlur = 0;
 
       if (isPlaying) {
         animationRef.current = requestAnimationFrame(draw);
