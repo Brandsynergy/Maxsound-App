@@ -337,7 +337,7 @@ export default function TrackDisplay({ track }) {
         {/* Waveform Player (professional, synced) */}
         {!isPurchased && (
           <div className="mb-6 bg-gradient-to-br from-purple-900 to-purple-800 rounded-xl p-6">
-            <WaveformPlayer url={track.preview_audio_url} height={100} />
+            <WaveformPlayer url={`/api/tracks/${track.id}/preview-stream`} height={100} />
           </div>
         )}
 

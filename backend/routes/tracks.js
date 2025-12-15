@@ -44,6 +44,37 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Stream 20s preview via server to avoid CORS issues
+router.get('/:id/preview-stream', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('SELECT preview_audio_url FROM tracks WHERE id = $1', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Track not found' });
+    }
+
+    const previewUrl = result.rows[0].preview_audio_url;
+    const upstream = await fetch(previewUrl);
+    if (!upstream.ok || !upstream.body) {
+      return res.status(502).json({ error: 'Failed to fetch preview audio' });
+    }
+
+    // Pass through content type and length if available
+    const contentType = upstream.headers.get('content-type') || 'audio/mpeg';
+    const contentLength = upstream.headers.get('content-length');
+    res.setHeader('Content-Type', contentType);
+    if (contentLength) res.setHeader('Content-Length', contentLength);
+    res.setHeader('Cache-Control', 'public, max-age=300');
+
+    // Pipe the upstream audio to the client
+    const { Readable } = await import('node:stream');
+    Readable.fromWeb(upstream.body).pipe(res);
+  } catch (error) {
+    console.error('Error streaming preview:', error);
+    res.status(500).json({ error: 'Preview stream failed' });
+  }
+});
+
 // Check if track was purchased
 router.get('/:id/purchased', async (req, res) => {
   try {
