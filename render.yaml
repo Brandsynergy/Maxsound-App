@@ -20,7 +20,7 @@ services:
       - key: CLOUDINARY_API_SECRET
         sync: false
       - key: FRONTEND_URL
-        value: https://maxsound.onrender.com
+        value: https://maxsound-app.onrender.com
 
 databases:
   - name: maxsound-db

@@ -91,10 +91,17 @@ router.post('/', upload.fields([
       ]
     );
 
+    // Generate share URL - prefer explicit FRONTEND_URL; otherwise derive from request host in production,
+    // and fall back to localhost in development.
+    const baseUrl = process.env.FRONTEND_URL ||
+      (process.env.NODE_ENV === 'production'
+        ? `https://${req.get('host')}`
+        : 'http://localhost:5173');
+
     res.json({
       success: true,
       trackId,
-      shareUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/track/${trackId}`
+      shareUrl: `${baseUrl}/track/${trackId}`
     });
   } catch (error) {
     console.error('Error uploading track:', error);
