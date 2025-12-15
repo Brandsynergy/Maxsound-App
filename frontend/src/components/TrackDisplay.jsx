@@ -51,11 +51,8 @@ export default function TrackDisplay({ track }) {
   }, [track.id]);
 
   const loadAudioData = async () => {
-    // Generate realistic waveform immediately without fetching audio
-    setTimeout(() => {
-      generateRealisticWaveform();
-      setWaveformLoading(false);
-    }, 100);
+    // Don't draw anything initially - only when playing
+    setWaveformLoading(false);
   };
 
   const generateRealisticWaveform = () => {
@@ -113,6 +110,8 @@ export default function TrackDisplay({ track }) {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
+      // Clear canvas when stopped
+      clearCanvas();
     } else {
       audio.play();
       setIsPlaying(true);
@@ -123,8 +122,18 @@ export default function TrackDisplay({ track }) {
         if (animationRef.current) {
           cancelAnimationFrame(animationRef.current);
         }
+        // Clear canvas when ended
+        clearCanvas();
       };
     }
+  };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
   };
 
 
