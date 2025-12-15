@@ -13,6 +13,7 @@ export default function TrackDisplay({ track }) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(20);
   const [audioBuffer, setAudioBuffer] = useState(null);
+  const [waveformLoading, setWaveformLoading] = useState(true);
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const audioContextRef = useRef(null);
@@ -49,19 +50,37 @@ export default function TrackDisplay({ track }) {
 
   const loadAudioData = async () => {
     try {
-      const response = await fetch(track.preview_audio_url);
+      setWaveformLoading(true);
+      console.log('Loading audio for waveform from:', track.preview_audio_url);
+      
+      const response = await fetch(track.preview_audio_url, {
+        mode: 'cors',
+        credentials: 'omit'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const arrayBuffer = await response.arrayBuffer();
+      console.log('Audio loaded, size:', arrayBuffer.byteLength);
       
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       audioContextRef.current = audioContext;
       
       const decodedData = await audioContext.decodeAudioData(arrayBuffer);
+      console.log('Audio decoded successfully, duration:', decodedData.duration);
+      
       setAudioBuffer(decodedData);
+      setWaveformLoading(false);
       
       // Draw initial waveform
-      drawStaticWaveform(decodedData);
+      setTimeout(() => {
+        drawStaticWaveform(decodedData);
+      }, 100);
     } catch (error) {
       console.error('Error loading audio data:', error);
+      setWaveformLoading(false);
     }
   };
 
@@ -101,20 +120,34 @@ export default function TrackDisplay({ track }) {
 
   const drawStaticWaveform = (buffer) => {
     const canvas = canvasRef.current;
-    if (!canvas || !buffer) return;
+    if (!canvas) {
+      console.error('Canvas not found');
+      return;
+    }
+    
+    if (!buffer) {
+      console.error('No audio buffer');
+      return;
+    }
 
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
     const height = canvas.height;
     
-    ctx.clearRect(0, 0, width, height);
+    console.log('Drawing waveform, canvas size:', width, 'x', height);
+    
+    // Clear with dark background
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, width, height);
 
     const data = buffer.getChannelData(0);
     const step = Math.ceil(data.length / width);
     const amp = height / 2;
 
-    // Draw background waveform in gray
-    ctx.fillStyle = 'rgba(100, 150, 200, 0.3)';
+    console.log('Audio data points:', data.length, 'step:', step);
+
+    // Draw waveform in blue/gray
+    ctx.fillStyle = 'rgba(100, 150, 200, 0.5)';
     
     for (let i = 0; i < width; i++) {
       let min = 1.0;
@@ -129,8 +162,10 @@ export default function TrackDisplay({ track }) {
       const yMin = (1 + min) * amp;
       const yMax = (1 + max) * amp;
       
-      ctx.fillRect(i, yMin, 1, yMax - yMin);
+      ctx.fillRect(i, yMin, 1, Math.max(yMax - yMin, 1));
     }
+    
+    console.log('Waveform drawn successfully');
   };
 
   const drawWaveform = () => {
@@ -142,7 +177,9 @@ export default function TrackDisplay({ track }) {
     const height = canvas.height;
 
     const draw = () => {
-      ctx.clearRect(0, 0, width, height);
+      // Clear with dark background
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(0, 0, width, height);
       
       const data = audioBuffer.getChannelData(0);
       const step = Math.ceil(data.length / width);
@@ -151,7 +188,7 @@ export default function TrackDisplay({ track }) {
       const progressX = Math.floor(width * progress);
 
       // Draw entire waveform in gray first
-      ctx.fillStyle = 'rgba(100, 150, 200, 0.3)';
+      ctx.fillStyle = 'rgba(100, 150, 200, 0.4)';
       for (let i = 0; i < width; i++) {
         let min = 1.0;
         let max = -1.0;
@@ -165,7 +202,7 @@ export default function TrackDisplay({ track }) {
         const yMin = (1 + min) * amp;
         const yMax = (1 + max) * amp;
         
-        ctx.fillRect(i, yMin, 1, yMax - yMin);
+        ctx.fillRect(i, yMin, 1, Math.max(yMax - yMin, 1));
       }
 
       // Draw played portion in blue gradient
@@ -187,7 +224,7 @@ export default function TrackDisplay({ track }) {
         const yMin = (1 + min) * amp;
         const yMax = (1 + max) * amp;
         
-        ctx.fillRect(i, yMin, 1, yMax - yMin);
+        ctx.fillRect(i, yMin, 1, Math.max(yMax - yMin, 1));
       }
 
       // Draw playhead line
@@ -315,12 +352,22 @@ export default function TrackDisplay({ track }) {
         {!isPurchased && (
           <div className="mb-6 bg-black bg-opacity-40 rounded-xl p-6 backdrop-blur-sm">
             <div className="relative">
-              <canvas 
-                ref={canvasRef} 
-                width={800} 
-                height={120}
-                className="w-full h-28 rounded-lg"
-              />
+              {waveformLoading ? (
+                <div className="w-full h-28 flex items-center justify-center text-gray-400">
+                  <div className="text-center">
+                    <div className="animate-pulse mb-2">Loading waveform...</div>
+                    <div className="text-xs">Analyzing audio</div>
+                  </div>
+                </div>
+              ) : (
+                <canvas 
+                  ref={canvasRef} 
+                  width={800} 
+                  height={120}
+                  className="w-full h-28 rounded-lg bg-gray-900"
+                  style={{ display: 'block' }}
+                />
+              )}
               <div className="mt-3 flex justify-between items-center text-white text-sm">
                 <span className="text-blue-400 font-medium">
                   {Math.floor(currentTime)}s
