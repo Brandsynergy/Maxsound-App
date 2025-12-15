@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import axios from 'axios';
+import WaveformPlayer from './WaveformPlayer';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
@@ -333,34 +334,10 @@ export default function TrackDisplay({ track }) {
           </p>
         </div>
 
-        {/* Waveform Visualization */}
+        {/* Waveform Player (professional, synced) */}
         {!isPurchased && (
           <div className="mb-6 bg-gradient-to-br from-purple-900 to-purple-800 rounded-xl p-6">
-            <div className="relative">
-              <canvas 
-                ref={canvasRef} 
-                width={1200} 
-                height={100}
-                className="w-full h-24 rounded bg-black"
-                style={{ display: 'block' }}
-              />
-              {waveformLoading && (
-                <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
-                  Loading waveform...
-                </div>
-              )}
-              <div className="mt-3 flex justify-between items-center text-white text-sm">
-                <span className="text-blue-400 font-medium">
-                  {Math.floor(currentTime)}s
-                </span>
-                <span className="text-gray-300">
-                  Preview: {track.title}
-                </span>
-                <span className="text-gray-400">
-                  {Math.floor(duration)}s
-                </span>
-              </div>
-            </div>
+            <WaveformPlayer url={track.preview_audio_url} height={100} />
           </div>
         )}
 
