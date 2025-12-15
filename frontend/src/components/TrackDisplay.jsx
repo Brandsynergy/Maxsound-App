@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import axios from 'axios';
 
@@ -10,6 +10,10 @@ export default function TrackDisplay({ track }) {
   const [isPurchased, setIsPurchased] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(10);
+  const canvasRef = useRef(null);
+  const animationRef = useRef(null);
 
   useEffect(() => {
     // Check if already purchased
@@ -18,8 +22,20 @@ export default function TrackDisplay({ track }) {
       checkPurchaseStatus(paymentIntentId);
     }
 
+    // Set up audio event listeners
+    audio.addEventListener('loadedmetadata', () => {
+      setDuration(audio.duration);
+    });
+
+    audio.addEventListener('timeupdate', () => {
+      setCurrentTime(audio.currentTime);
+    });
+
     return () => {
       audio.pause();
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
     };
   }, [track.id]);
 
@@ -40,14 +56,71 @@ export default function TrackDisplay({ track }) {
       audio.pause();
       audio.currentTime = 0;
       setIsPlaying(false);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
     } else {
       audio.play();
       setIsPlaying(true);
+      drawWaveform();
       
       audio.onended = () => {
         setIsPlaying(false);
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+        }
       };
     }
+  };
+
+  const drawWaveform = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    const barCount = 50;
+    const barWidth = width / barCount;
+
+    const draw = () => {
+      ctx.clearRect(0, 0, width, height);
+      
+      // Create gradient
+      const gradient = ctx.createLinearGradient(0, 0, width, 0);
+      gradient.addColorStop(0, '#8B5CF6');
+      gradient.addColorStop(0.5, '#3B82F6');
+      gradient.addColorStop(1, '#8B5CF6');
+
+      for (let i = 0; i < barCount; i++) {
+        // Create animated wave effect
+        const progress = currentTime / duration;
+        const barProgress = i / barCount;
+        
+        // Height varies based on position and time
+        const baseHeight = Math.sin(i * 0.5 + currentTime * 3) * 0.3 + 0.5;
+        const playingMultiplier = isPlaying ? (1 + Math.sin(currentTime * 10 + i * 0.3) * 0.3) : 0.5;
+        const barHeight = height * baseHeight * playingMultiplier;
+
+        // Color bars differently based on progress
+        if (barProgress <= progress) {
+          ctx.fillStyle = gradient;
+        } else {
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        }
+
+        const x = i * barWidth + barWidth * 0.2;
+        const y = (height - barHeight) / 2;
+        
+        ctx.fillRect(x, y, barWidth * 0.6, barHeight);
+      }
+
+      if (isPlaying) {
+        animationRef.current = requestAnimationFrame(draw);
+      }
+    };
+
+    draw();
   };
 
   const handlePurchase = async () => {
@@ -155,6 +228,23 @@ export default function TrackDisplay({ track }) {
           </p>
         </div>
 
+        {/* Waveform Visualization */}
+        {!isPurchased && (
+          <div className="mb-6 bg-black bg-opacity-30 rounded-xl p-6 backdrop-blur-sm">
+            <canvas 
+              ref={canvasRef} 
+              width={400} 
+              height={100}
+              className="w-full h-24"
+            />
+            {isPlaying && (
+              <div className="mt-3 text-center text-white text-sm">
+                {Math.floor(currentTime)}s / {Math.floor(duration)}s
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="space-y-3">
           {/* Preview Button */}
@@ -163,7 +253,7 @@ export default function TrackDisplay({ track }) {
               onClick={playPreview}
               className="w-full bg-white text-purple-700 font-semibold py-4 px-6 rounded-xl hover:bg-gray-100 transition duration-200 shadow-lg text-lg uppercase tracking-wide"
             >
-              {isPlaying ? '⏸ Stop Preview' : '▶ Listen to 5s Preview'}
+              {isPlaying ? '⏸ Stop Preview' : '▶ Listen to 10s Preview'}
             </button>
           )}
 

@@ -69,10 +69,10 @@ router.post('/', upload.fields([
       uploadStream.end(req.files.audio[0].buffer);
     });
 
-    // Create preview (first 5 seconds) using Cloudinary transformation
+    // Create preview (first 10 seconds) using Cloudinary transformation
     const previewUrl = cloudinary.url(`maxsound/audio/full/audio_${trackId}`, {
       resource_type: 'video',
-      duration: '5',
+      duration: '10',
       format: 'mp3'
     });
 
