@@ -120,34 +120,22 @@ export default function TrackDisplay({ track }) {
 
   const drawStaticWaveform = (buffer) => {
     const canvas = canvasRef.current;
-    if (!canvas) {
-      console.error('Canvas not found');
-      return;
-    }
-    
-    if (!buffer) {
-      console.error('No audio buffer');
-      return;
-    }
+    if (!canvas || !buffer) return;
 
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
     const height = canvas.height;
     
-    console.log('Drawing waveform, canvas size:', width, 'x', height);
-    
-    // Clear with dark background
-    ctx.fillStyle = '#1a1a1a';
+    // Black background
+    ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, width, height);
 
     const data = buffer.getChannelData(0);
     const step = Math.ceil(data.length / width);
     const amp = height / 2;
 
-    console.log('Audio data points:', data.length, 'step:', step);
-
-    // Draw waveform in blue/gray
-    ctx.fillStyle = 'rgba(100, 150, 200, 0.5)';
+    // Professional blue waveform - exactly like reference image
+    ctx.fillStyle = '#4A9FDB';
     
     for (let i = 0; i < width; i++) {
       let min = 1.0;
@@ -164,8 +152,6 @@ export default function TrackDisplay({ track }) {
       
       ctx.fillRect(i, yMin, 1, Math.max(yMax - yMin, 1));
     }
-    
-    console.log('Waveform drawn successfully');
   };
 
   const drawWaveform = () => {
@@ -177,8 +163,8 @@ export default function TrackDisplay({ track }) {
     const height = canvas.height;
 
     const draw = () => {
-      // Clear with dark background
-      ctx.fillStyle = '#1a1a1a';
+      // Black background
+      ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
       
       const data = audioBuffer.getChannelData(0);
@@ -187,31 +173,9 @@ export default function TrackDisplay({ track }) {
       const progress = currentTime / duration;
       const progressX = Math.floor(width * progress);
 
-      // Draw entire waveform in gray first
-      ctx.fillStyle = 'rgba(100, 150, 200, 0.4)';
+      // Draw entire waveform in professional blue
+      ctx.fillStyle = '#4A9FDB';
       for (let i = 0; i < width; i++) {
-        let min = 1.0;
-        let max = -1.0;
-        
-        for (let j = 0; j < step; j++) {
-          const datum = data[(i * step) + j];
-          if (datum < min) min = datum;
-          if (datum > max) max = datum;
-        }
-        
-        const yMin = (1 + min) * amp;
-        const yMax = (1 + max) * amp;
-        
-        ctx.fillRect(i, yMin, 1, Math.max(yMax - yMin, 1));
-      }
-
-      // Draw played portion in blue gradient
-      const gradient = ctx.createLinearGradient(0, 0, progressX, 0);
-      gradient.addColorStop(0, '#3B82F6');
-      gradient.addColorStop(1, '#60A5FA');
-      ctx.fillStyle = gradient;
-      
-      for (let i = 0; i < progressX; i++) {
         let min = 1.0;
         let max = -1.0;
         
@@ -362,9 +326,9 @@ export default function TrackDisplay({ track }) {
               ) : (
                 <canvas 
                   ref={canvasRef} 
-                  width={800} 
-                  height={120}
-                  className="w-full h-28 rounded-lg bg-gray-900"
+                  width={1200} 
+                  height={100}
+                  className="w-full h-24 rounded bg-black"
                   style={{ display: 'block' }}
                 />
               )}
