@@ -8,6 +8,8 @@ import { initDatabase } from './database.js';
 import tracksRouter from './routes/tracks.js';
 import uploadsRouter from './routes/uploads.js';
 import paymentsRouter from './routes/payments.js';
+import pushRouter from './routes/push.js';
+import { configureWebPush } from './utils/notifications.js';
 
 dotenv.config();
 
@@ -30,6 +32,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/tracks', tracksRouter);
 app.use('/api/uploads', uploadsRouter);
 app.use('/api/payments', paymentsRouter);
+app.use('/api/push', pushRouter);
 
 // Serve static frontend files in production
 if (process.env.NODE_ENV === 'production') {
@@ -48,6 +51,7 @@ app.get('/health', (req, res) => {
 // Initialize database and start server
 initDatabase()
   .then(() => {
+    configureWebPush();
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🎵 MAXSOUND server running on port ${PORT}`);
     });

@@ -39,6 +39,13 @@ export async function initDatabase() {
     `);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        endpoint TEXT PRIMARY KEY,
+        data JSONB NOT NULL
+      )
+    `);
+
+    await client.query(`
       CREATE INDEX IF NOT EXISTS idx_payment_intent ON purchases(payment_intent_id)
     `);
 

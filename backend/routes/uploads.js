@@ -108,6 +108,11 @@ router.post('/', upload.fields([
         ? `https://${req.get('host')}`
         : 'http://localhost:5173');
 
+    // Fire-and-forget push notification (non-blocking)
+    import('../utils/notifications.js').then(({ notifyNewTrack }) => {
+      notifyNewTrack({ id: trackId, title, artist }).catch(() => {})
+    }).catch(() => {})
+
     res.json({
       success: true,
       trackId,
