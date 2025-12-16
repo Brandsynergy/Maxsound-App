@@ -88,6 +88,13 @@ export default function BrowsePage() {
             ))}
           </div>
         )}
+
+        {/* Footer */}
+        <div className="mt-16 pt-8 border-t border-gray-800 text-center">
+          <p className="text-gray-500 text-sm">
+            © 2025 Mediad Innovation. All rights reserved.
+          </p>
+        </div>
       </div>
     </div>
   );
