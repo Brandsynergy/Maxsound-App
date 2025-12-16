@@ -1,7 +1,7 @@
 {
   "name": "MAXSOUND",
   "short_name": "MAXSOUND",
-  "start_url": "/",
+  "start_url": "/browse",
   "display": "standalone",
   "background_color": "#0b0a1a",
   "theme_color": "#1e1b4b",

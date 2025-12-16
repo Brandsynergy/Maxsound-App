@@ -7,9 +7,9 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<BrowsePage />} />
+        <Route path="/" element={<AdminPage />} />
+        <Route path="/browse" element={<BrowsePage />} />
         <Route path="/track/:id" element={<TrackPage />} />
-        <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </Router>
   );

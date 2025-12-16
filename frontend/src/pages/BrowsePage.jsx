@@ -89,16 +89,6 @@ export default function BrowsePage() {
             ))}
           </div>
         )}
-
-        {/* Admin Link (Optional - for creators) */}
-        <div className="mt-12 text-center">
-          <Link
-            to="/admin"
-            className="inline-block text-gray-500 hover:text-purple-400 text-sm transition"
-          >
-            Are you a creator? Upload your music
-          </Link>
-        </div>
       </div>
     </div>
   );

@@ -1,11 +1,11 @@
-const CACHE_VERSION = 'maxsound-v2';
-const OLD_CACHES = ['maxsound-v1'];
+const CACHE_VERSION = 'maxsound-v3';
+const OLD_CACHES = ['maxsound-v1', 'maxsound-v2'];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_VERSION)
-    await cache.addAll(['/','/index.html'])
+    await cache.addAll(['/','/browse','/index.html'])
   })()
 )})
 
