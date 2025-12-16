@@ -46,9 +46,13 @@ export default function TrackPage() {
 
   return (
     <div>
-      <div className="p-4">
-        <Link to="/browse" className="text-purple-400 hover:text-purple-300 text-sm inline-flex items-center">
-          ← Back to Browse
+      <div className="p-6">
+        <Link 
+          to="/browse" 
+          className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold px-6 py-3 rounded-lg transition shadow-lg"
+        >
+          <span>←</span>
+          <span>Back to Browse</span>
         </Link>
       </div>
       <TrackDisplay track={track} />

@@ -97,4 +97,32 @@ router.get('/:id/purchased', async (req, res) => {
   }
 });
 
+// Delete track
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if track exists
+    const trackResult = await pool.query(
+      'SELECT * FROM tracks WHERE id = $1',
+      [id]
+    );
+    
+    if (trackResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Track not found' });
+    }
+    
+    // Delete related purchases first (foreign key constraint)
+    await pool.query('DELETE FROM purchases WHERE track_id = $1', [id]);
+    
+    // Delete the track
+    await pool.query('DELETE FROM tracks WHERE id = $1', [id]);
+    
+    res.json({ message: 'Track deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting track:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;

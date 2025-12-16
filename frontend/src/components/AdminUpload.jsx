@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import axios from 'axios';
 
 export default function AdminUpload() {
@@ -62,14 +61,8 @@ export default function AdminUpload() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">MAXSOUND</h1>
-          <p className="text-gray-600 mb-4">Upload New Track</p>
-          <Link
-            to="/browse"
-            className="inline-block text-sm text-purple-600 hover:text-purple-700 font-medium"
-          >
-            → View Browse Page (Customer View)
-          </Link>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Upload New Track</h1>
+          <p className="text-gray-600">Fill in the details below</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
