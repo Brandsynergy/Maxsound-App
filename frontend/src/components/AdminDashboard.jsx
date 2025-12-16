@@ -45,19 +45,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">Admin Dashboard</h1>
-          <div className="flex gap-4">
-            <Link
-              to="/browse"
-              className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-6 py-3 rounded-lg transition"
-            >
-              → View Browse Page (Customer View)
-            </Link>
-          </div>
-        </div>
+    <div>
 
         {tracks.length === 0 ? (
           <div className="text-center text-gray-400 py-20">
@@ -134,7 +122,6 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }
