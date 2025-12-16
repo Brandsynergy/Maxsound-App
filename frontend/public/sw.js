@@ -1,5 +1,5 @@
-const CACHE_VERSION = 'maxsound-v3';
-const OLD_CACHES = ['maxsound-v1', 'maxsound-v2'];
+const CACHE_VERSION = 'maxsound-v4';
+const OLD_CACHES = ['maxsound-v1', 'maxsound-v2', 'maxsound-v3'];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
