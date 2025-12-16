@@ -29,7 +29,10 @@ if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !pr
 // Configure multer for memory storage
 const upload = multer({ 
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+  limits: { 
+    fileSize: 100 * 1024 * 1024, // 100MB limit
+    fieldSize: 100 * 1024 * 1024
+  }
 });
 
 // Upload track with audio and cover image
@@ -37,16 +40,39 @@ router.post('/', upload.fields([
   { name: 'audio', maxCount: 1 },
   { name: 'cover', maxCount: 1 }
 ]), async (req, res) => {
+  // Set longer timeout for large uploads
+  req.setTimeout(300000); // 5 minutes
+  res.setTimeout(300000);
+  
   try {
+    console.log('📤 Upload request received:', { title: req.body.title, artist: req.body.artist });
     const { title, artist, price } = req.body;
     
-    if (!title || !artist || !price || !req.files.audio || !req.files.cover) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!title || !artist || !price || !req.files?.audio || !req.files?.cover) {
+      console.error('❌ Missing required fields:', {
+        title: !!title,
+        artist: !!artist,
+        price: !!price,
+        audio: !!req.files?.audio,
+        cover: !!req.files?.cover
+      });
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        received: {
+          title: !!title,
+          artist: !!artist,
+          price: !!price,
+          audio: !!req.files?.audio,
+          cover: !!req.files?.cover
+        }
+      });
     }
 
     const trackId = uuidv4();
+    console.log('✅ All fields present, starting upload for track:', trackId);
     
     // Upload cover image to Cloudinary
+    console.log('📸 Uploading cover image...');
     const coverUpload = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
