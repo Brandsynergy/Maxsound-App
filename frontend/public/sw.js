@@ -1,26 +1,42 @@
+const CACHE_VERSION = 'maxsound-v2';
+const OLD_CACHES = ['maxsound-v1'];
+
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil((async () => {
-    const cache = await caches.open('maxsound-v1')
+    const cache = await caches.open(CACHE_VERSION)
     await cache.addAll(['/','/index.html'])
-  })())
-})
+  })()
+)})
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    const cacheNames = await caches.keys();
+    await Promise.all(
+      cacheNames
+        .filter(name => OLD_CACHES.includes(name))
+        .map(name => caches.delete(name))
+    );
+    await clients.claim();
+  })());
+});
 
 self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return
   event.respondWith((async () => {
-    const cached = await caches.match(request)
-    if (cached) return cached
     try {
       const fresh = await fetch(request)
-      const cache = await caches.open('maxsound-v1')
+      const cache = await caches.open(CACHE_VERSION)
       cache.put(request, fresh.clone())
       return fresh
     } catch (e) {
+      const cached = await caches.match(request)
+      if (cached) return cached
       return caches.match('/')
     }
-  })())
-})
+  })()
+)})
 
 self.addEventListener('push', (event) => {
   let data = {}
