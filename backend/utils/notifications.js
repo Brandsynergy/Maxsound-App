@@ -2,11 +2,18 @@ import webpush from 'web-push'
 import pool from '../database.js'
 
 export function configureWebPush() {
-  const publicKey = process.env.VAPID_PUBLIC_KEY
-  const privateKey = process.env.VAPID_PRIVATE_KEY
-  const subject = process.env.VAPID_SUBJECT || 'mailto:admin@example.com'
+  const publicKey = process.env.VAPID_PUBLIC_KEY?.trim()
+  const privateKey = process.env.VAPID_PRIVATE_KEY?.trim()
+  const subject = process.env.VAPID_SUBJECT?.trim() || 'mailto:admin@example.com'
+  
   if (publicKey && privateKey) {
-    webpush.setVapidDetails(subject, publicKey, privateKey)
+    try {
+      webpush.setVapidDetails(subject, publicKey, privateKey)
+      console.log('✓ VAPID keys configured successfully')
+    } catch (error) {
+      console.error('Failed to configure VAPID keys:', error.message)
+      console.warn('Push notifications disabled due to invalid VAPID configuration')
+    }
   } else {
     console.warn('VAPID keys not configured; push disabled')
   }
