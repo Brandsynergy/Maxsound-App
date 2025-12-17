@@ -32,17 +32,6 @@ export default function BrowsePage() {
   return (
     <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Back to Admin Button */}
-        <div className="mb-6">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold px-4 py-2 rounded-lg transition text-sm"
-          >
-            <span>←</span>
-            <span>Back to Admin</span>
-          </Link>
-        </div>
-
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
