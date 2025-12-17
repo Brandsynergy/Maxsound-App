@@ -31,21 +31,30 @@ export default function BrowsePage() {
       const lastVisitTime = localStorage.getItem('lastBrowseVisit');
       console.log('⏰ Last visit:', lastVisitTime);
       
+      // Show tracks uploaded in last 24 hours as new
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const recentTracks = data.filter(track => {
+        if (!track.created_at) return false;
+        const trackDate = new Date(track.created_at);
+        return trackDate > oneDayAgo;
+      });
+      
+      console.log(`✨ Found ${recentTracks.length} tracks from last 24h`);
+      setNewTracksCount(recentTracks.length);
+      
+      // Also check against last visit if available
       if (lastVisitTime) {
         const lastVisitDate = new Date(lastVisitTime);
-        const newTracks = data.filter(track => {
+        const newSinceVisit = data.filter(track => {
           if (!track.created_at) return false;
           const trackDate = new Date(track.created_at);
           const isNew = trackDate > lastVisitDate;
           if (isNew) {
-            console.log('🆕 New track found:', track.title, 'created:', track.created_at);
+            console.log('🆕 New since last visit:', track.title, 'created:', track.created_at);
           }
           return isNew;
         });
-        console.log(`✨ Found ${newTracks.length} new tracks`);
-        setNewTracksCount(newTracks.length);
-      } else {
-        console.log('👋 First visit - no new tracks to show');
+        console.log(`🕒 ${newSinceVisit.length} new since last visit:`, lastVisitTime);
       }
     } catch (error) {
       console.error('Error fetching tracks:', error);
@@ -55,9 +64,11 @@ export default function BrowsePage() {
   };
   
   const isTrackNew = (track) => {
-    if (!lastVisit || !track.created_at) return false;
-    const isNew = new Date(track.created_at) > new Date(lastVisit);
-    return isNew;
+    if (!track.created_at) return false;
+    // Show NEW badge for tracks uploaded in last 24 hours
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const trackDate = new Date(track.created_at);
+    return trackDate > oneDayAgo;
   };
 
   if (loading) {
