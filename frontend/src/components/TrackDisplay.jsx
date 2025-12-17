@@ -20,6 +20,17 @@ export default function TrackDisplay({ track }) {
   const audioContextRef = useRef(null);
 
   useEffect(() => {
+    // Check for Stripe Checkout success
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session_id');
+    const success = urlParams.get('success');
+    
+    if (success === 'true' && sessionId) {
+      verifyCheckoutSession(sessionId);
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
     // Check if already purchased
     const paymentIntentId = localStorage.getItem(`payment_${track.id}`);
     if (paymentIntentId) {
@@ -103,6 +114,20 @@ export default function TrackDisplay({ track }) {
       const barHeight = amplitude * height;
       
       ctx.fillRect(i, centerY - barHeight / 2, 1, Math.max(barHeight, 2));
+    }
+  };
+
+  const verifyCheckoutSession = async (sessionId) => {
+    try {
+      const response = await axios.get(`/api/payments/verify-session?session_id=${sessionId}`);
+      if (response.data.purchased) {
+        localStorage.setItem(`payment_${track.id}`, response.data.paymentIntentId);
+        setIsPurchased(true);
+        setDownloadUrl(response.data.downloadUrl);
+        alert('✅ Payment successful! You can now download the full track.');
+      }
+    } catch (error) {
+      console.error('Error verifying session:', error);
     }
   };
 
@@ -272,33 +297,19 @@ export default function TrackDisplay({ track }) {
   };
 
   const handleBuyNow = async () => {
-    // Simple payment flow - clicking Buy now goes to Stripe Checkout
     try {
       setIsProcessing(true);
-      const { data } = await axios.post('/api/payments/create-payment-intent', {
+      
+      // Create Stripe Checkout Session
+      const { data } = await axios.post('/api/payments/create-checkout-session', {
         trackId: track.id
       });
       
-      // For demo purposes, we'll use a simplified flow
-      // In production, implement full Stripe Checkout or Elements
-      const userConfirmed = window.confirm(
-        `Purchase "${track.title}" for $${track.price}?\n\n` +
-        `In production, this would open Stripe Checkout.\n` +
-        `Click OK to simulate a successful purchase.`
-      );
-
-      if (userConfirmed) {
-        // Simulate successful payment for demo
-        const mockPaymentIntentId = 'pi_demo_' + Date.now();
-        localStorage.setItem(`payment_${track.id}`, mockPaymentIntentId);
-        setIsPurchased(true);
-        setDownloadUrl(track.full_audio_url);
-        alert('Purchase successful! You can now download the full track.');
-      }
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
     } catch (error) {
       console.error('Purchase error:', error);
-      alert('Purchase failed. Please try again.');
-    } finally {
+      alert('Failed to start checkout: ' + error.message);
       setIsProcessing(false);
     }
   };
