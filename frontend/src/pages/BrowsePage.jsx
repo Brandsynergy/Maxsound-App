@@ -4,9 +4,20 @@ import { Link } from 'react-router-dom';
 export default function BrowsePage() {
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [newTracksCount, setNewTracksCount] = useState(0);
+  const [lastVisit, setLastVisit] = useState(null);
 
   useEffect(() => {
+    // Get last visit time from localStorage
+    const lastVisitTime = localStorage.getItem('lastBrowseVisit');
+    setLastVisit(lastVisitTime ? new Date(lastVisitTime) : null);
+    
     fetchTracks();
+    
+    // Update last visit time when component unmounts
+    return () => {
+      localStorage.setItem('lastBrowseVisit', new Date().toISOString());
+    };
   }, []);
 
   const fetchTracks = async () => {
@@ -14,11 +25,25 @@ export default function BrowsePage() {
       const response = await fetch('/api/tracks');
       const data = await response.json();
       setTracks(data);
+      
+      // Count new tracks (uploaded after last visit)
+      const lastVisitTime = localStorage.getItem('lastBrowseVisit');
+      if (lastVisitTime) {
+        const newTracks = data.filter(track => 
+          new Date(track.created_at) > new Date(lastVisitTime)
+        );
+        setNewTracksCount(newTracks.length);
+      }
     } catch (error) {
       console.error('Error fetching tracks:', error);
     } finally {
       setLoading(false);
     }
+  };
+  
+  const isTrackNew = (track) => {
+    if (!lastVisit) return false;
+    return new Date(track.created_at) > new Date(lastVisit);
   };
 
   if (loading) {
@@ -40,6 +65,13 @@ export default function BrowsePage() {
           <p className="text-gray-400 text-lg">
             Premium Audio Experience
           </p>
+          
+          {/* New Tracks Banner */}
+          {newTracksCount > 0 && (
+            <div className="mt-6 mx-auto max-w-md bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-full shadow-lg animate-pulse">
+              <span className="font-bold">🎵 {newTracksCount} new track{newTracksCount > 1 ? 's' : ''} available!</span>
+            </div>
+          )}
         </div>
 
         {/* Tracks Grid */}
@@ -54,8 +86,14 @@ export default function BrowsePage() {
               <Link
                 key={track.id}
                 to={`/track/${track.id}`}
-                className="group bg-gradient-to-br from-purple-900/30 to-indigo-900/30 rounded-xl overflow-hidden border border-purple-500/20 hover:border-purple-500/50 transition-all duration-300 hover:scale-105"
+                className="group bg-gradient-to-br from-purple-900/30 to-indigo-900/30 rounded-xl overflow-hidden border border-purple-500/20 hover:border-purple-500/50 transition-all duration-300 hover:scale-105 relative"
               >
+                {/* NEW Badge */}
+                {isTrackNew(track) && (
+                  <div className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">
+                    NEW
+                  </div>
+                )}
                 <div className="p-6">
                   {/* Track Title */}
                   <h3 className="text-xl font-bold text-white mb-2 group-hover:text-purple-300 transition">
