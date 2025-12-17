@@ -91,6 +91,16 @@ export default function BrowsePage() {
 
         {/* Footer */}
         <div className="mt-16 pt-8 border-t border-gray-800 text-center">
+          <button
+            onClick={() => {
+              if (window.confirm('To close the app, use your phone\'s home button or swipe up gesture.')) {
+                // User acknowledged
+              }
+            }}
+            className="mb-4 text-gray-400 hover:text-gray-300 text-sm transition"
+          >
+            How to close this app?
+          </button>
           <p className="text-gray-500 text-sm">
             © 2025 Mediad Innovation. All rights reserved.
           </p>
