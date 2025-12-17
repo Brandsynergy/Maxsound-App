@@ -24,15 +24,28 @@ export default function BrowsePage() {
     try {
       const response = await fetch('/api/tracks');
       const data = await response.json();
+      console.log('📀 Fetched tracks:', data.length);
       setTracks(data);
       
       // Count new tracks (uploaded after last visit)
       const lastVisitTime = localStorage.getItem('lastBrowseVisit');
+      console.log('⏰ Last visit:', lastVisitTime);
+      
       if (lastVisitTime) {
-        const newTracks = data.filter(track => 
-          new Date(track.created_at) > new Date(lastVisitTime)
-        );
+        const lastVisitDate = new Date(lastVisitTime);
+        const newTracks = data.filter(track => {
+          if (!track.created_at) return false;
+          const trackDate = new Date(track.created_at);
+          const isNew = trackDate > lastVisitDate;
+          if (isNew) {
+            console.log('🆕 New track found:', track.title, 'created:', track.created_at);
+          }
+          return isNew;
+        });
+        console.log(`✨ Found ${newTracks.length} new tracks`);
         setNewTracksCount(newTracks.length);
+      } else {
+        console.log('👋 First visit - no new tracks to show');
       }
     } catch (error) {
       console.error('Error fetching tracks:', error);
@@ -42,8 +55,9 @@ export default function BrowsePage() {
   };
   
   const isTrackNew = (track) => {
-    if (!lastVisit) return false;
-    return new Date(track.created_at) > new Date(lastVisit);
+    if (!lastVisit || !track.created_at) return false;
+    const isNew = new Date(track.created_at) > new Date(lastVisit);
+    return isNew;
   };
 
   if (loading) {
