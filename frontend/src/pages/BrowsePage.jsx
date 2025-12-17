@@ -4,60 +4,21 @@ import { Link } from 'react-router-dom';
 export default function BrowsePage() {
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [newTracksCount, setNewTracksCount] = useState(0);
-  const [lastVisit, setLastVisit] = useState(null);
 
   useEffect(() => {
-    // Get last visit time from localStorage
-    const lastVisitTime = localStorage.getItem('lastBrowseVisit');
-    setLastVisit(lastVisitTime ? new Date(lastVisitTime) : null);
-    
     fetchTracks();
-    
-    // Update last visit time when component unmounts
-    return () => {
-      localStorage.setItem('lastBrowseVisit', new Date().toISOString());
-    };
   }, []);
 
   const fetchTracks = async () => {
     try {
       const response = await fetch('/api/tracks');
       const data = await response.json();
-      console.log('📀 Fetched tracks:', data.length);
       setTracks(data);
-      
-      // Count new tracks (uploaded after last visit)
-      const lastVisitTime = localStorage.getItem('lastBrowseVisit');
-      console.log('⏰ Last visit:', lastVisitTime);
-      
-      if (lastVisitTime) {
-        const lastVisitDate = new Date(lastVisitTime);
-        const newTracks = data.filter(track => {
-          if (!track.created_at) return false;
-          const trackDate = new Date(track.created_at);
-          const isNew = trackDate > lastVisitDate;
-          if (isNew) {
-            console.log('🆕 New track found:', track.title, 'created:', track.created_at);
-          }
-          return isNew;
-        });
-        console.log(`✨ Found ${newTracks.length} new tracks`);
-        setNewTracksCount(newTracks.length);
-      } else {
-        console.log('👋 First visit - no new tracks to show');
-      }
     } catch (error) {
       console.error('Error fetching tracks:', error);
     } finally {
       setLoading(false);
     }
-  };
-  
-  const isTrackNew = (track) => {
-    if (!lastVisit || !track.created_at) return false;
-    const isNew = new Date(track.created_at) > new Date(lastVisit);
-    return isNew;
   };
 
   if (loading) {
@@ -79,13 +40,9 @@ export default function BrowsePage() {
           <p className="text-gray-400 text-lg">
             Premium Audio Experience
           </p>
-          
-          {/* New Tracks Banner */}
-          {newTracksCount > 0 && (
-            <div className="mt-6 mx-auto max-w-md bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-full shadow-lg animate-pulse">
-              <span className="font-bold">🎵 {newTracksCount} new track{newTracksCount > 1 ? 's' : ''} available!</span>
-            </div>
-          )}
+          <p className="text-gray-500 text-sm mt-2">
+            🎵 Check for new song uploads regularly
+          </p>
         </div>
 
         {/* Tracks Grid */}
@@ -100,14 +57,8 @@ export default function BrowsePage() {
               <Link
                 key={track.id}
                 to={`/track/${track.id}`}
-                className="group bg-gradient-to-br from-purple-900/30 to-indigo-900/30 rounded-xl overflow-hidden border border-purple-500/20 hover:border-purple-500/50 transition-all duration-300 hover:scale-105 relative"
+                className="group bg-gradient-to-br from-purple-900/30 to-indigo-900/30 rounded-xl overflow-hidden border border-purple-500/20 hover:border-purple-500/50 transition-all duration-300 hover:scale-105"
               >
-                {/* NEW Badge */}
-                {isTrackNew(track) && (
-                  <div className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">
-                    NEW
-                  </div>
-                )}
                 <div className="p-6">
                   {/* Track Title */}
                   <h3 className="text-xl font-bold text-white mb-2 group-hover:text-purple-300 transition">
