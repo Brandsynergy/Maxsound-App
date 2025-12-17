@@ -51,19 +51,26 @@ self.addEventListener('push', (event) => {
     badgeCount++;
     await setBadgeCount(badgeCount);
     
-    // Set badge on app icon
-    if (navigator.setAppBadge) {
-      await navigator.setAppBadge(badgeCount);
+    // Try multiple badge APIs (iOS support varies)
+    try {
+      if ('setAppBadge' in navigator) {
+        await navigator.setAppBadge(badgeCount);
+      } else if ('setExperimentalAppBadge' in navigator) {
+        await navigator.setExperimentalAppBadge(badgeCount);
+      }
+    } catch (e) {
+      console.log('Badge API not supported:', e);
     }
     
-    // Show notification with badge
+    // Show notification with badge count in title for iOS
     const options = {
       body,
       icon: '/pwa-192.png',
-      badge: '/pwa-192.png',
-      tag: 'new-track', // Reuse tag so notifications stack
+      badge: badgeCount, // iOS uses this for badge count
+      tag: `track-${Date.now()}`, // Unique tag for each notification
       renotify: true,
       requireInteraction: false,
+      vibrate: [200, 100, 200],
       data: { url, badgeCount }
     };
     

@@ -34,20 +34,34 @@ export async function removeSubscription(endpoint) {
 
 export async function notifyNewTrack({ id, title, artist }) {
   const res = await pool.query('SELECT data FROM push_subscriptions')
+  console.log(`📤 Sending push notification to ${res.rows.length} subscribers`)
+  
   const payload = JSON.stringify({
     title: 'New upload on MAXSOUND',
     body: `${artist} – ${title}`,
-    url: `/track/${id}`
+    url: `/track/${id}`,
+    badge: 1,
+    icon: '/pwa-192.png',
+    vibrate: [200, 100, 200]
   })
+  
+  let successCount = 0
+  let failCount = 0
+  
   for (const row of res.rows) {
     try {
       await webpush.sendNotification(row.data, payload)
+      successCount++
     } catch (e) {
+      failCount++
       if (e.statusCode === 410 || e.statusCode === 404) {
+        console.log('🗑️ Removing stale subscription')
         await pool.query('DELETE FROM push_subscriptions WHERE endpoint = $1', [row.data.endpoint])
       } else {
-        console.error('Push send failed', e?.statusCode || e)
+        console.error('❌ Push send failed:', e?.statusCode || e.message)
       }
     }
   }
+  
+  console.log(`✅ Push notifications sent: ${successCount} succeeded, ${failCount} failed`)
 }
