@@ -44,17 +44,61 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'MAXSOUND'
   const body = data.body || 'New upload available'
   const url = data.url || '/'
-  const options = {
-    body,
-    icon: '/pwa-192.png',
-    badge: '/pwa-192.png',
-    data: { url }
-  }
-  event.waitUntil(self.registration.showNotification(title, options))
+  
+  event.waitUntil((async () => {
+    // Get current badge count
+    let badgeCount = await getBadgeCount();
+    badgeCount++;
+    await setBadgeCount(badgeCount);
+    
+    // Set badge on app icon
+    if (navigator.setAppBadge) {
+      await navigator.setAppBadge(badgeCount);
+    }
+    
+    // Show notification with badge
+    const options = {
+      body,
+      icon: '/pwa-192.png',
+      badge: '/pwa-192.png',
+      tag: 'new-track', // Reuse tag so notifications stack
+      renotify: true,
+      requireInteraction: false,
+      data: { url, badgeCount }
+    };
+    
+    await self.registration.showNotification(title, options);
+  })());
 })
 
 self.addEventListener('notificationclick', (event) => {
-  event.notification.close()
-  const url = event.notification.data?.url || '/'
-  event.waitUntil(clients.openWindow(url))
-})
+  event.notification.close();
+  const url = event.notification.data?.url || '/';
+  
+  event.waitUntil((async () => {
+    // Clear badge when notification is clicked
+    if (navigator.clearAppBadge) {
+      await navigator.clearAppBadge();
+    }
+    await setBadgeCount(0);
+    
+    // Open the URL
+    await clients.openWindow(url);
+  })());
+});
+
+// Badge count management
+async function getBadgeCount() {
+  const cache = await caches.open('maxsound-badge');
+  const response = await cache.match('badge-count');
+  if (response) {
+    const data = await response.json();
+    return data.count || 0;
+  }
+  return 0;
+}
+
+async function setBadgeCount(count) {
+  const cache = await caches.open('maxsound-badge');
+  await cache.put('badge-count', new Response(JSON.stringify({ count })));
+}

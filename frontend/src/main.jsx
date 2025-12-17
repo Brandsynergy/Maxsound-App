@@ -7,6 +7,11 @@ import { registerPWA } from './pwa.js'
 
 registerPWA()
 
+// Clear badge when app is opened
+if (navigator.clearAppBadge) {
+  navigator.clearAppBadge().catch(() => {})
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
