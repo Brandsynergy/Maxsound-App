@@ -4,16 +4,39 @@ import { Link } from 'react-router-dom';
 export default function BrowsePage() {
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hasNewTracks, setHasNewTracks] = useState(false);
+  const [newTrackCount, setNewTrackCount] = useState(0);
 
   useEffect(() => {
     fetchTracks();
   }, []);
+
+  const isTrackNew = (track) => {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const uploadDate = new Date(track.uploaded_at || track.created_at);
+    return uploadDate > sevenDaysAgo;
+  };
 
   const fetchTracks = async () => {
     try {
       const response = await fetch('/api/tracks');
       const data = await response.json();
       setTracks(data);
+      
+      // Check for tracks uploaded in the last 7 days
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      
+      const newTracks = data.filter(track => {
+        const uploadDate = new Date(track.uploaded_at || track.created_at);
+        return uploadDate > sevenDaysAgo;
+      });
+      
+      if (newTracks.length > 0) {
+        setHasNewTracks(true);
+        setNewTrackCount(newTracks.length);
+      }
     } catch (error) {
       console.error('Error fetching tracks:', error);
     } finally {
@@ -40,10 +63,25 @@ export default function BrowsePage() {
           <p className="text-gray-400 text-lg">
             Premium Audio Experience
           </p>
-          <p className="text-gray-500 text-sm mt-2">
-            🎵 Check for new song uploads regularly
-          </p>
         </div>
+
+        {/* New Tracks Banner */}
+        {hasNewTracks && (
+          <div className="mb-6 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl p-4 shadow-lg border border-purple-400 animate-pulse">
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-2xl">🎵</span>
+              <div className="text-center">
+                <p className="text-white font-bold text-lg">
+                  {newTrackCount} New Track{newTrackCount > 1 ? 's' : ''} Available!
+                </p>
+                <p className="text-purple-100 text-sm">
+                  Fresh music uploaded in the last 7 days
+                </p>
+              </div>
+              <span className="text-2xl">✨</span>
+            </div>
+          </div>
+        )}
 
         {/* Tracks Grid */}
         {tracks.length === 0 ? (
@@ -57,8 +95,14 @@ export default function BrowsePage() {
               <Link
                 key={track.id}
                 to={`/track/${track.id}`}
-                className="group bg-gradient-to-br from-purple-900/30 to-indigo-900/30 rounded-xl overflow-hidden border border-purple-500/20 hover:border-purple-500/50 transition-all duration-300 hover:scale-105"
+                className="group bg-gradient-to-br from-purple-900/30 to-indigo-900/30 rounded-xl overflow-hidden border border-purple-500/20 hover:border-purple-500/50 transition-all duration-300 hover:scale-105 relative"
               >
+                {/* NEW Badge */}
+                {isTrackNew(track) && (
+                  <div className="absolute top-3 right-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg z-10 animate-bounce">
+                    NEW
+                  </div>
+                )}
                 <div className="p-6">
                   {/* Track Title */}
                   <h3 className="text-xl font-bold text-white mb-2 group-hover:text-purple-300 transition">
